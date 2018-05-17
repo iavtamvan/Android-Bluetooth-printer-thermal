@@ -12,6 +12,8 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -34,6 +36,7 @@ public class MainActivity extends Activity implements Runnable {
     private ProgressDialog mBluetoothConnectProgressDialog;
     private BluetoothSocket mBluetoothSocket;
     BluetoothDevice mBluetoothDevice;
+    private static OutputStream outputStream;
 
     @Override
     public void onCreate(Bundle mSavedInstanceState) {
@@ -68,39 +71,59 @@ public class MainActivity extends Activity implements Runnable {
                 Thread t = new Thread() {
                     public void run() {
                         try {
-                            OutputStream os = mBluetoothSocket
-                                    .getOutputStream();
+                            OutputStream opstream = null;
+                            outputStream = opstream;
+                            OutputStream os = mBluetoothSocket.getOutputStream();
+
+
                             String BILL = "";
 
-                            BILL = "                   XXXX MART    \n"
-                                    + "                   XX.AA.BB.CC.     \n " +
-                                    "                 NO 25 ABC ABCDE    \n" +
-                                    "                  XXXXX YYYYYY      \n" +
+                            BILL = "                   HANIF MART    \n"+
+//                                    + "                   XX.AA.BB.CC.     \n " +
+//                                    "                 NO 25 ABC ABCDE    \n" +
+//                                    "                  XXXXX YYYYYY      \n" +
                                     "                   MMM 590019091      \n";
                             BILL = BILL
                                     + "-----------------------------------------------\n";
+//                            printPhoto(R.mipmap.ic_launcher);
+                            try {
+                                Bitmap bmp = BitmapFactory.decodeResource(getResources(),
+                                        R.mipmap.ic_launcher);
+                                if(bmp!=null){
+                                    os.write(BILL.getBytes());
+                                    byte[] command = Utils.decodeBitmap(bmp);
+                                    os.write(PrinterCommands.ESC_ALIGN_RIGHT);
+                                    os.write(command);
+                                    Toast.makeText(MainActivity.this, "command", Toast.LENGTH_SHORT).show();
+//                                    outputStream.write(PrinterCommands.FEED_LINE);
+                                }else{
+                                    Log.e("Print Photo error", "the file isn't exists");
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                Log.e("PrintTools", "the file isn't exists");
+                            }
 
-
-                            BILL = BILL + String.format("%1$-10s %2$10s %3$13s %4$10s", "Item", "Qty", "Rate", "Totel");
-                            BILL = BILL + "\n";
-                            BILL = BILL
-                                    + "-----------------------------------------------";
-                            BILL = BILL + "\n " + String.format("%1$-10s %2$10s %3$11s %4$10s", "item-001", "5", "10", "50.00");
-                            BILL = BILL + "\n " + String.format("%1$-10s %2$10s %3$11s %4$10s", "item-002", "10", "5", "50.00");
-                            BILL = BILL + "\n " + String.format("%1$-10s %2$10s %3$11s %4$10s", "item-003", "20", "10", "200.00");
-                            BILL = BILL + "\n " + String.format("%1$-10s %2$10s %3$11s %4$10s", "item-004", "50", "10", "500.00");
-
-                            BILL = BILL
-                                    + "\n-----------------------------------------------";
-                            BILL = BILL + "\n\n ";
-
-                            BILL = BILL + "                   Total Qty:" + "      " + "85" + "\n";
-                            BILL = BILL + "                   Total Value:" + "     " + "700.00" + "\n";
-
-                            BILL = BILL
-                                    + "-----------------------------------------------\n";
-                            BILL = BILL + "\n\n ";
-                            os.write(BILL.getBytes());
+//                            BILL = BILL + String.format("%1$-10s %2$10s %3$13s %4$10s", "Item", "Qty", "Rate", "Totel");
+//                            BILL = BILL + "\n";
+//                            BILL = BILL
+//                                    + "-----------------------------------------------";
+//                            BILL = BILL + "\n " + String.format("%1$-10s %2$10s %3$11s %4$10s", "item-001", "5", "10", "50.00");
+//                            BILL = BILL + "\n " + String.format("%1$-10s %2$10s %3$11s %4$10s", "item-002", "10", "5", "50.00");
+//                            BILL = BILL + "\n " + String.format("%1$-10s %2$10s %3$11s %4$10s", "item-003", "20", "10", "200.00");
+//                            BILL = BILL + "\n " + String.format("%1$-10s %2$10s %3$11s %4$10s", "item-004", "50", "10", "500.00");
+//
+//                            BILL = BILL
+//                                    + "\n-----------------------------------------------";
+//                            BILL = BILL + "\n\n ";
+//
+//                            BILL = BILL + "                   Total Qty:" + "      " + "85" + "\n";
+//                            BILL = BILL + "                   Total Value:" + "     " + "700.00" + "\n";
+//
+//                            BILL = BILL
+//                                    + "-----------------------------------------------\n";
+//                            BILL = BILL + "\n\n ";
+//                            os.write(BILL.getBytes());
                             //This is printer specific code you can comment ==== > Start
 
                             // Setting height
@@ -161,6 +184,46 @@ public class MainActivity extends Activity implements Runnable {
         }
         setResult(RESULT_CANCELED);
         finish();
+    }
+
+    //print photo
+    public void printPhoto(int img) {
+        try {
+            Bitmap bmp = BitmapFactory.decodeResource(getResources(),
+                    img);
+            if(bmp!=null){
+                byte[] command = Utils.decodeBitmap(bmp);
+                outputStream.write(PrinterCommands.ESC_ALIGN_CENTER);
+                printText(command);
+            }else{
+                Log.e("Print Photo error", "the file isn't exists");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.e("PrintTools", "the file isn't exists");
+        }
+    }
+
+    //print byte[]
+    private void printText(byte[] msg) {
+        try {
+            // Print normal text
+            outputStream.write(msg);
+            printNewLine();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    //print new line
+    private void printNewLine() {
+        try {
+            outputStream.write(PrinterCommands.FEED_LINE);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     public void onActivityResult(int mRequestCode, int mResultCode,
